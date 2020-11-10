@@ -33,11 +33,11 @@ public class MiscHelper {
                 logger.log(Level.INFO, "Running on Windows system");
                 //path always starts with file:/
                 testPath = runtimePath.substring(6, runtimePath.indexOf(".jar")) + "default.properties";
-                testPath = testPath.replace("NFSSoundtrack-Radio-0.7", "");
+                testPath = testPath.replace("NFSSoundtrack-Radio-0.7.1", "");
             } else if (isUnix()) {
                 logger.log(Level.INFO, "Running on Unix system");
                 testPath = runtimePath.substring(5, runtimePath.indexOf(".jar")) + "default.properties";
-                testPath = testPath.replace("NFSSoundtrack-Radio-0.7", "");
+                testPath = testPath.replace("NFSSoundtrack-Radio-0.7.1", "");
             } else if (isMac()){
                 logger.log(Level.INFO, "I don't know");
             }

@@ -30,7 +30,7 @@ Set values for following properties in default.properties file:
 Open command line, make sure default.properties location in the same location as JAR file and write in command line:
 
 ```sh
-$ java -jar NFSSoundtrack-Radio-0.7.jar
+$ java -jar NFSSoundtrack-Radio-0.7.1.jar
 ```
 
 Then visit [localhost:5000/start](http://localhost:5000/start) to start bot.
