@@ -117,13 +117,17 @@ public class Queries {
         return songs;
     }
 
+    //TODO there can be more songs with same id actually
     public static Songs getSongsBySrcId(String src_id){
         var songs = sessionFactory.fromTransaction(session -> {
             try {
-                return session
+                List<Songs> localSongs = session
                         .createSelectionQuery("from Songs where upper(src_id) like :src_id", Songs.class)
                         .setParameter("src_id", src_id.toUpperCase())
-                        .getSingleResult();
+                        .getResultList();
+                if (!localSongs.isEmpty()){
+                    return localSongs.get(0);
+                } else return null;
             } catch (Exception e){
                 e.printStackTrace();
                 return null;

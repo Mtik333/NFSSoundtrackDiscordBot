@@ -87,11 +87,25 @@ public class MainTest extends ListenerAdapter {
         || event.getAuthor().getId().equals(MiscHelper.propertyValues.getProperty("bot.id"))) {
             logger.log(Level.INFO, "allgood");
         } else {
-            event.getChannel().sendMessage("User " + event.getAuthor() + " is not allowed to do " +
-                    "anything with this radio bot").queue();
-            event.getAuthor().openPrivateChannel().queue((privateChannel ->
-                    privateChannel.sendMessage("You're not allowed to change the radio, " +
-                            "ask admin to get such permissions").queue()));
+            String usersAllowed = MiscHelper.propertyValues.getProperty("allowedusers.id");
+            if (usersAllowed!=null && !usersAllowed.isEmpty()){
+                List<String> allowedIds = Arrays.stream(usersAllowed.split(",")).toList();
+                if (allowedIds.contains(event.getAuthor().getId())){
+                    logger.log(Level.INFO, "allgood");
+                } else {
+                    event.getChannel().sendMessage("User " + event.getAuthor() + " is not allowed to do " +
+                            "anything with this radio bot").queue();
+                    event.getAuthor().openPrivateChannel().queue((privateChannel ->
+                            privateChannel.sendMessage("You're not allowed to change the radio, " +
+                                    "ask admin to get such permissions").queue()));
+                }
+            } else {
+                event.getChannel().sendMessage("User " + event.getAuthor() + " is not allowed to do " +
+                        "anything with this radio bot").queue();
+                event.getAuthor().openPrivateChannel().queue((privateChannel ->
+                        privateChannel.sendMessage("You're not allowed to change the radio, " +
+                                "ask admin to get such permissions").queue()));
+            }
             return;
         }
         logger.log(Level.INFO, "Command sent: " + Arrays.toString(command));

@@ -13,7 +13,17 @@ public class Resources {
             "~now - prints info about currently played song (with info from NFSSoundtrack when possible)\n" +
             "~queue - prints info about songs in queue, you can set queue maximum size in properties file\n" +
             "~clear - clears queue but currently played song keeps playing\n" +
-            "~setVolume [0-100] - sets bot volume between 0 and 100, you can set default volume in properties file";
+            "~setVolume [0-100] - sets bot volume between 0 and 100, you can set default volume in properties file\n" +
+            "~setSeriesFilter [-id: 1,2,3] - songs from specified series will play;\n" +
+            "~setGamesFilter [-id: 1,2,3] - songs from specified games will play;\n" +
+            "~setSongsFilter [-id: 1,2,3] - songs with specific ids will play;\n" +
+            "~resetFilter - sets bot volume between 0 and 100, you can set default volume in properties file\n";
+    /*
+    TODO
+    ~setQuality to set quality of songs stream
+    set radio channel status
+    determine if songs from list in shuffle or random order
+     */
     public static final String YOUTUBE_LINK = "youtube.com/watch?v=";
     public static final String SHORT_YOUTUBE_LINK = "youtu.be/";
     public static final String HEROKU_DOMAIN = "https://nfssoundtrack-radio.herokuapp.com/";
