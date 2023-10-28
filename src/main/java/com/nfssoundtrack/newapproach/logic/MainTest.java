@@ -82,52 +82,59 @@ public class MainTest extends ListenerAdapter {
     @Override
     public void onGuildMessageReceived(GuildMessageReceivedEvent event) {
         logger.log(Level.INFO, "onGuildMessageReceived: event: " + event);
+        String textChannelId = MiscHelper.propertyValues.getProperty("textchannel.id");
         String[] command = event.getMessage().getContentRaw().split(" ", 2);
+        boolean userAllowed=true;
         if (event.getAuthor().getId().equals(MiscHelper.propertyValues.getProperty("pingadmin.id"))
-        || event.getAuthor().getId().equals(MiscHelper.propertyValues.getProperty("bot.id"))) {
+                || event.getAuthor().getId().equals(MiscHelper.propertyValues.getProperty("bot.id"))) {
             logger.log(Level.INFO, "allgood");
         } else {
             String usersAllowed = MiscHelper.propertyValues.getProperty("allowedusers.id");
-            if (usersAllowed!=null && !usersAllowed.isEmpty()){
+            if (usersAllowed != null && !usersAllowed.isEmpty()) {
                 List<String> allowedIds = Arrays.stream(usersAllowed.split(",")).toList();
-                if (allowedIds.contains(event.getAuthor().getId())){
+                if (allowedIds.contains(event.getAuthor().getId())) {
                     logger.log(Level.INFO, "allgood");
                 } else {
-                    event.getChannel().sendMessage("User " + event.getAuthor() + " is not allowed to do " +
-                            "anything with this radio bot").queue();
+                    if (event.getChannel().getId().contentEquals(textChannelId)) {
+                        event.getChannel().sendMessage("User " + event.getAuthor().getName()
+                                + " is not allowed to do " + "anything with this radio bot").queue();
+                        event.getAuthor().openPrivateChannel().queue((privateChannel ->
+                                privateChannel.sendMessage("You're not allowed to change the radio, " +
+                                        "ask admin to get such permissions").queue()));
+                        userAllowed=false;
+                    }
+                }
+            } else {
+                if (event.getChannel().getId().contentEquals(textChannelId)) {
+                    event.getChannel().sendMessage("User " + event.getAuthor().getName()
+                            + " is not allowed to do " + "anything with this radio bot").queue();
                     event.getAuthor().openPrivateChannel().queue((privateChannel ->
                             privateChannel.sendMessage("You're not allowed to change the radio, " +
                                     "ask admin to get such permissions").queue()));
+                    userAllowed=false;
                 }
-            } else {
-                event.getChannel().sendMessage("User " + event.getAuthor() + " is not allowed to do " +
-                        "anything with this radio bot").queue();
-                event.getAuthor().openPrivateChannel().queue((privateChannel ->
-                        privateChannel.sendMessage("You're not allowed to change the radio, " +
-                                "ask admin to get such permissions").queue()));
             }
-            return;
         }
         logger.log(Level.INFO, "Command sent: " + Arrays.toString(command));
         if (event.getChannel().getId().contentEquals(MiscHelper.propertyValues.getProperty("textchannel.id"))) {
             //find song with some constraints
-            if (Resources.FIND_COMMAND.equals(command[0])) {
+            if (Resources.FIND_COMMAND.equals(command[0]) && userAllowed) {
                 MessageHandler.handleFindCommand(this, event);
-            } else if (Resources.FIND_PLAY_FIRST_COMMAND.equals(command[0])) {
+            } else if (Resources.FIND_PLAY_FIRST_COMMAND.equals(command[0]) && userAllowed) {
                 MessageHandler.handleFindAndPlayFirst(this, event);
-            } else if (Resources.FIND_PLAY_ALL_COMMAND.equals(command[0])) {
+            } else if (Resources.FIND_PLAY_ALL_COMMAND.equals(command[0]) && userAllowed) {
                 MessageHandler.handleFindAndPlayAll(this, event);
             }
             //just play whatever someone wants
-            else if (Resources.PLAY_COMMAND.equals(command[0])) {
+            else if (Resources.PLAY_COMMAND.equals(command[0]) && userAllowed) {
                 MessageHandler.handlePlayCommand(this, event);
             }
             //skip current song but maybe introduce some permissions to do this?
-            else if (Resources.SKIP_COMMAND.equals(command[0])) {
+            else if (Resources.SKIP_COMMAND.equals(command[0]) && userAllowed) {
                 MessageHandler.handleSkipCommand(this, event);
             }
             //add random song from database to queue?
-            else if (Resources.RANDOM_COMMAND.equals(command[0])) {
+            else if (Resources.RANDOM_COMMAND.equals(command[0]) && userAllowed) {
                 MessageHandler.handleRandomSongCommand(this, event);
             }
             //show info about currently played song?
@@ -149,19 +156,19 @@ public class MainTest extends ListenerAdapter {
                         event.getChannel().sendMessage("Song in queue on position " + i + ": " + track).queue();
                     }
                 }
-            } else if (Resources.CLEAR_COMMAND.equals(command[0])) {
+            } else if (Resources.CLEAR_COMMAND.equals(command[0]) && userAllowed) {
                 MessageHandler.handleClearCommand(this, event);
-            } else if (Resources.SET_VOLUME_COMMAND.equals(command[0])) {
+            } else if (Resources.SET_VOLUME_COMMAND.equals(command[0]) && userAllowed) {
                 MessageHandler.handleSetVolume(this, event);
-            } else if (Resources.SET_SERIES_FILTER_COMMAND.equals(command[0])) {
+            } else if (Resources.SET_SERIES_FILTER_COMMAND.equals(command[0]) && userAllowed) {
                 MessageHandler.handleFilter(this, event, Series.class);
-            } else if (Resources.SET_GAMES_FILTER_COMMAND.equals(command[0])) {
+            } else if (Resources.SET_GAMES_FILTER_COMMAND.equals(command[0]) && userAllowed) {
                 MessageHandler.handleFilter(this, event, Games.class);
-            } else if (Resources.SET_SONGS_FILTER_COMMAND.equals(command[0])) {
+            } else if (Resources.SET_SONGS_FILTER_COMMAND.equals(command[0]) && userAllowed) {
                 MessageHandler.handleFilter(this, event, Songs.class);
-            } else if (Resources.RESET_FILTER_COMMAND.equals(command[0])) {
+            } else if (Resources.RESET_FILTER_COMMAND.equals(command[0]) && userAllowed) {
                 MessageHandler.handleResetFilter(this, event);
-            } else if ("~reloadProperties".equals(command[0])) {
+            } else if ("~reloadProperties".equals(command[0]) && userAllowed) {
                 MessageHandler.handleReloadProperties(this, event);
             }
         }
@@ -247,5 +254,6 @@ public class MainTest extends ListenerAdapter {
         }
         super.onGuildVoiceJoin(event);
     }
+
 
 }
