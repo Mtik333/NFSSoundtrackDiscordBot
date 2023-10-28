@@ -1,5 +1,7 @@
 package com.nfssoundtrack.newapproach.model;
 
+import com.nfssoundtrack.newapproach.model2.Series;
+
 import java.util.Comparator;
 
 public class SeriesComparator implements Comparator<Series> {

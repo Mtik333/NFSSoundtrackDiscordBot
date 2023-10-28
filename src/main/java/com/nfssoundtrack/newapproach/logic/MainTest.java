@@ -2,10 +2,11 @@ package com.nfssoundtrack.newapproach.logic;
 
 import com.nfssoundtrack.newapproach.audio.GuildMusicManager;
 import com.nfssoundtrack.newapproach.audio.MyAudioLoadResultHandler;
-import com.nfssoundtrack.newapproach.model.Game;
-import com.nfssoundtrack.newapproach.model.Series;
-import com.nfssoundtrack.newapproach.model.Song;
+import com.nfssoundtrack.newapproach.model2.Games;
+import com.nfssoundtrack.newapproach.model2.Series;
+import com.nfssoundtrack.newapproach.model2.Songs;
 import com.nfssoundtrack.newapproach.others.MiscHelper;
+import com.nfssoundtrack.newapproach.others.Queries;
 import com.nfssoundtrack.newapproach.others.Resources;
 import com.nfssoundtrack.newapproach.others.SongHelper;
 import com.sedmelluq.discord.lavaplayer.player.AudioConfiguration;
@@ -32,10 +33,7 @@ public class MainTest extends ListenerAdapter {
     private final AudioPlayerManager playerManager;
     private final Map<Long, GuildMusicManager> musicManagers;
     private TextChannel radioChannel;
-    final List<Series> seriesFromFile;
-    final List<Game> gamesFromFile;
-    final List<Song> songsFromFile;
-    List<Song> filteredSongs;
+    List<Songs> filteredSongs;
     public static boolean isRadioModeEnabled = true;
     private static final Logger logger = Logger.getLogger(MainTest.class.getName());
 
@@ -47,10 +45,8 @@ public class MainTest extends ListenerAdapter {
                 (AudioConfiguration.ResamplingQuality.valueOf(MiscHelper.propertyValues.getProperty("quality.level", "HIGH")));
         AudioSourceManagers.registerRemoteSources(playerManager);
         AudioSourceManagers.registerLocalSource(playerManager);
-        this.seriesFromFile = SongHelper.loadSeriesFile();
-        this.gamesFromFile = SongHelper.loadGamesFile(seriesFromFile);
-        this.songsFromFile = SongHelper.loadSongFile(gamesFromFile);
-        this.filteredSongs = SongHelper.filterSongs(songsFromFile);
+
+        this.filteredSongs = SongHelper.filterSongs(new ArrayList<>(), null, null, null);
     }
 
     @Override
@@ -87,6 +83,17 @@ public class MainTest extends ListenerAdapter {
     public void onGuildMessageReceived(GuildMessageReceivedEvent event) {
         logger.log(Level.INFO, "onGuildMessageReceived: event: " + event);
         String[] command = event.getMessage().getContentRaw().split(" ", 2);
+        if (event.getAuthor().getId().equals(MiscHelper.propertyValues.getProperty("pingadmin.id"))
+        || event.getAuthor().getId().equals(MiscHelper.propertyValues.getProperty("bot.id"))) {
+            logger.log(Level.INFO, "allgood");
+        } else {
+            event.getChannel().sendMessage("User " + event.getAuthor() + " is not allowed to do " +
+                    "anything with this radio bot").queue();
+            event.getAuthor().openPrivateChannel().queue((privateChannel ->
+                    privateChannel.sendMessage("You're not allowed to change the radio, " +
+                            "ask admin to get such permissions").queue()));
+            return;
+        }
         logger.log(Level.INFO, "Command sent: " + Arrays.toString(command));
         if (event.getChannel().getId().contentEquals(MiscHelper.propertyValues.getProperty("textchannel.id"))) {
             //find song with some constraints
@@ -121,7 +128,7 @@ public class MainTest extends ListenerAdapter {
                 int i = 1;
                 for (Iterator<AudioTrack> audio = queue.iterator(); audio.hasNext(); i++) {
                     AudioTrack track = audio.next();
-                    Song dbSong = SongHelper.findSongBySrcId(track.getIdentifier(), filteredSongs);
+                    Songs dbSong = Queries.getSongsBySrcId(track.getIdentifier());
                     if (dbSong != null) {
                         event.getChannel().sendMessage("Song in queue on position " + i + ": " + dbSong.toRadioString()).queue();
                     } else {
@@ -132,6 +139,14 @@ public class MainTest extends ListenerAdapter {
                 MessageHandler.handleClearCommand(this, event);
             } else if (Resources.SET_VOLUME_COMMAND.equals(command[0])) {
                 MessageHandler.handleSetVolume(this, event);
+            } else if (Resources.SET_SERIES_FILTER_COMMAND.equals(command[0])) {
+                MessageHandler.handleFilter(this, event, Series.class);
+            } else if (Resources.SET_GAMES_FILTER_COMMAND.equals(command[0])) {
+                MessageHandler.handleFilter(this, event, Games.class);
+            } else if (Resources.SET_SONGS_FILTER_COMMAND.equals(command[0])) {
+                MessageHandler.handleFilter(this, event, Songs.class);
+            } else if (Resources.RESET_FILTER_COMMAND.equals(command[0])) {
+                MessageHandler.handleResetFilter(this, event);
             } else if ("~reloadProperties".equals(command[0])) {
                 MessageHandler.handleReloadProperties(this, event);
             }
@@ -153,7 +168,7 @@ public class MainTest extends ListenerAdapter {
 
     public void setActivityInfo(Guild guild, AudioTrack track) {
         logger.log(Level.INFO, "setActivityInfo: guild: " + guild + ", track: " + track);
-        Song dbSong = SongHelper.findSongBySrcId(track.getIdentifier(), filteredSongs);
+        Songs dbSong = Queries.getSongsBySrcId(track.getIdentifier());
         logger.log(Level.INFO, "Current activity: " + guild.getJDA().getPresence().getActivity());
         if (dbSong == null) {
             guild.getJDA().getPresence().setActivity(Activity.listening(track.getInfo().title));
@@ -164,7 +179,7 @@ public class MainTest extends ListenerAdapter {
 
     private static void connectToFirstVoiceChannel(AudioManager audioManager) {
         logger.log(Level.INFO, "connectToFirstVoiceChannel: " + audioManager);
-        if (!audioManager.isConnected() && !audioManager.isAttemptingToConnect()) {
+        if (!audioManager.isConnected()) {
             for (VoiceChannel voiceChannel : audioManager.getGuild().getVoiceChannels()) {
                 if (voiceChannel.getId().contentEquals(MiscHelper.propertyValues.getProperty("voicechannel.id"))) {
                     audioManager.openAudioConnection(voiceChannel);
@@ -210,7 +225,7 @@ public class MainTest extends ListenerAdapter {
             if (isNotOnlyBotOnChannel) {
                 isRadioModeEnabled = true;
                 radioChannel.sendMessage("Who joined? " + event.getMember().getEffectiveName()).queue();
-                radioChannel.sendMessage("Who is on channel? " + membersOnChannel.toString()).queue();
+                radioChannel.sendMessage("Who is on channel? " + membersOnChannel).queue();
                 if (howManyRealUsers >= 1 && queueSize == 0) {
                     radioChannel.sendMessage(Resources.RANDOM_COMMAND).queue();
                 }

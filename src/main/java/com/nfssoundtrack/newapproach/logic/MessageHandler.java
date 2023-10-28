@@ -1,16 +1,17 @@
 package com.nfssoundtrack.newapproach.logic;
 
 import com.nfssoundtrack.newapproach.audio.GuildMusicManager;
-import com.nfssoundtrack.newapproach.model.Song;
-import com.nfssoundtrack.newapproach.others.MiscHelper;
-import com.nfssoundtrack.newapproach.others.MissingPropertyException;
-import com.nfssoundtrack.newapproach.others.Resources;
-import com.nfssoundtrack.newapproach.others.SongHelper;
+import com.nfssoundtrack.newapproach.model2.Games;
+import com.nfssoundtrack.newapproach.model2.Series;
+import com.nfssoundtrack.newapproach.model2.Songs;
+import com.nfssoundtrack.newapproach.others.*;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.BlockingQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -20,8 +21,8 @@ public class MessageHandler {
 
     private static final Logger logger = Logger.getLogger(MessageHandler.class.getName());
 
-    static List<Song> handleFindCommand(MainTest mainTest, GuildMessageReceivedEvent event) {
-        List<Song> songsToReturn = mainTest.songsFromFile;
+    static List<Songs> handleFindCommand(MainTest mainTest, GuildMessageReceivedEvent event) {
+        List<Songs> songsToReturn = null;
         String messageRawContent = event.getMessage().getContentRaw();
         logger.log(Level.INFO, "Event message: " + messageRawContent);
         String[] command = messageRawContent.split("-");
@@ -29,29 +30,30 @@ public class MessageHandler {
             event.getChannel().sendMessage("Missing parameters in query, see example:\n" +
                     "~find [-title:\"Born Too Slow\"] [-band:\"The Crystal Method\"] [-game:\"Need For Speed Underground\"]").queue();
         } else {
+            String titleParam = "";
+            String bandParam = "";
+            String gameParam = "";
             for (String parameter : command) {
                 parameter = parameter.trim();
                 if (parameter.startsWith("title")) {
                     String[] titleKey = parameter.split(":");
-                    String filterValue = titleKey[1].replace("\"", "").toLowerCase();
-                    songsToReturn = SongHelper.findSongsByTitle(filterValue, songsToReturn);
-                    logger.log(Level.INFO, "Size of list after title filter: " + songsToReturn.size());
+                    String filterValue = titleKey[1].replace("\"", "").toUpperCase();
+                    titleParam = "title:" + filterValue;
                 }
                 if (parameter.startsWith("band")) {
                     String[] bandKey = parameter.split(":");
-                    String filterValue = bandKey[1].replace("\"", "").toLowerCase();
-                    songsToReturn = SongHelper.findSongsByBand(filterValue, songsToReturn);
-                    logger.log(Level.INFO, "Size of list after band filter: " + songsToReturn.size());
+                    String filterValue = bandKey[1].replace("\"", "").toUpperCase();
+                    titleParam = "band:" + filterValue;
                 }
                 if (parameter.startsWith("game")) {
                     String[] gameKey = parameter.split(":");
-                    String filterValue = gameKey[1].replace("\"", "").toLowerCase();
-                    songsToReturn = SongHelper.findSongsByGame(filterValue, songsToReturn);
-                    logger.log(Level.INFO, "Size of list after game filter: " + songsToReturn.size());
+                    String filterValue = gameKey[1].replace("\"", "").toUpperCase();
+                    titleParam = "game:" + filterValue;
                 }
             }
+            songsToReturn = Queries.getSongsByConditions(titleParam, bandParam, gameParam);
             logger.log(Level.INFO, "Final list size: " + songsToReturn.size());
-            if (songsToReturn.size() == 0) {
+            if (songsToReturn.isEmpty()) {
                 event.getChannel().sendMessage("No songs found for this query.").queue();
             } else {
                 logger.log(Level.INFO, "Songs found: ");
@@ -62,7 +64,7 @@ public class MessageHandler {
                     songsToReturn = songsToReturn.stream().limit(queueLimit).collect(Collectors.toList());
                 } else
                     event.getChannel().sendMessage("Found " + songsToReturn.size() + " songs matching criteria: ").queue();
-                for (Song song : songsToReturn) {
+                for (Songs song : songsToReturn) {
                     event.getChannel().sendMessage(song.toRadioString()).queue();
                 }
             }
@@ -71,20 +73,20 @@ public class MessageHandler {
     }
 
     static void handleFindAndPlayFirst(MainTest mainTest, GuildMessageReceivedEvent event) {
-        List<Song> filteredSongs = handleFindCommand(mainTest, event);
+        List<Songs> filteredSongs = handleFindCommand(mainTest, event);
         if (!filteredSongs.isEmpty()) {
-            Song firstSong = filteredSongs.stream().findFirst().get();
+            Songs firstSong = filteredSongs.stream().findFirst().get();
             event.getChannel().sendMessage("Song that will be played as first: " + firstSong.toRadioString()).queue();
             handlePlayLink(mainTest, event, Resources.YOUTUBE_LINK + firstSong.getSrc_id());
         }
     }
 
     static void handleFindAndPlayAll(MainTest mainTest, GuildMessageReceivedEvent event) {
-        List<Song> filteredSongs = handleFindCommand(mainTest, event);
+        List<Songs> filteredSongs = handleFindCommand(mainTest, event);
         handleFindAndPlayFirst(mainTest, event);
         int queueLimit = Integer.parseInt(MiscHelper.propertyValues.getProperty("queue.limit", "10"));
         filteredSongs = filteredSongs.stream().skip(1).limit(queueLimit).collect(Collectors.toList());
-        for (Song song : filteredSongs) {
+        for (Songs song : filteredSongs) {
 //            event.getChannel().sendMessage("Song added to queue: " + song.toRadioString()).queue();
             handlePlayLink(mainTest, event, Resources.YOUTUBE_LINK + song.getSrc_id());
         }
@@ -108,7 +110,13 @@ public class MessageHandler {
     }
 
     static void handleRandomSongCommand(MainTest mainTest, GuildMessageReceivedEvent event) {
-        Song song = SongHelper.getRandomSong(mainTest.filteredSongs);
+        Songs song;
+        if (mainTest.filteredSongs.isEmpty()) {
+            song = Queries.getRandomSong().get(0);
+        } else {
+            Random rand = new Random();
+            song = mainTest.filteredSongs.get(rand.nextInt(mainTest.filteredSongs.size()));
+        }
         if (!Boolean.parseBoolean(MiscHelper.propertyValues.getProperty("disable.next.song.message", "false"))) {
             event.getChannel().sendMessage("Next song will be: " + song.toRadioString()).queue();
         }
@@ -120,7 +128,7 @@ public class MessageHandler {
         if (track == null) {
             event.getChannel().sendMessage("Nothing played currently").queue();
         } else {
-            Song dbSong = SongHelper.findSongBySrcId(track.getIdentifier(), mainTest.filteredSongs);
+            Songs dbSong = Queries.getSongsBySrcId(track.getIdentifier());
             if (dbSong != null) {
                 event.getChannel().sendMessage("Song now is: " + dbSong.toRadioString()).queue();
             } else {
@@ -142,8 +150,10 @@ public class MessageHandler {
         logger.log(Level.INFO, "Event message: " + messageRawContent);
         String[] command = messageRawContent.split("-");
         if (command.length < 2) {
-            event.getChannel().sendMessage("Missing parameters in command, see examples:\n" +
-                    "~play [-id: 2135]\n" + "~play [-youtube: https://www.youtube.com/watch?v=<YT_ID>]").queue();
+            event.getChannel().sendMessage("""
+                    Missing parameters in command, see examples:
+                    ~play [-id: 2135]
+                    ~play [-youtube: https://www.youtube.com/watch?v=<YT_ID>]""").queue();
         } else {
             for (String parameter : command) {
                 parameter = parameter.trim();
@@ -169,7 +179,8 @@ public class MessageHandler {
                     String[] titleKey = parameter.split(":");
                     String filterValue = titleKey[1].replace("\"", "");
                     Integer id = Integer.valueOf(filterValue);
-                    Song foundSong = SongHelper.findSongById(id, mainTest.songsFromFile);
+                    Songs foundSong = Queries.getSongsById(id).get(0);
+                    //Song foundSong = SongHelper.findSongById(id, mainTest.songsFromFile);
                     if (foundSong != null) {
                         event.getChannel().sendMessage("Song that will be played: " + foundSong.toRadioString()).queue();
                         handlePlayLink(mainTest, event, Resources.YOUTUBE_LINK + foundSong.getSrc_id());
@@ -205,10 +216,53 @@ public class MessageHandler {
         }
     }
 
+    static void handleFilter(MainTest mainTest, GuildMessageReceivedEvent event, Class<?> typeOfFilter) {
+        handleClearCommand(mainTest, event);
+        String messageRawContent = event.getMessage().getContentRaw();
+        logger.log(Level.INFO, "Event message: " + messageRawContent);
+        String[] command = messageRawContent.split("-");
+        if (command.length < 2) {
+            event.getChannel().sendMessage("Invalid input for command, see example:\n" +
+                    "~setSeriesFilter -id: 1,2,3 - filters songs to games from series with ids 1, 2, or 3").queue();
+        } else {
+            event.getChannel().sendMessage("How many songs before applying filter? "
+                    + mainTest.filteredSongs.size()).queue();
+            for (String parameter : command) {
+                parameter = parameter.trim();
+                if (parameter.startsWith("id")) {
+                    String[] titleKey = parameter.split(":");
+                    String filterValue = titleKey[1].replace("\"", "");
+                    if (typeOfFilter.equals(Series.class)) {
+                        mainTest.filteredSongs =
+                                SongHelper.filterSongs(mainTest.filteredSongs, filterValue, null, null);
+                    } else if (typeOfFilter.equals(Games.class)) {
+                        mainTest.filteredSongs =
+                                SongHelper.filterSongs(mainTest.filteredSongs, null, filterValue, null);
+                    } else if (typeOfFilter.equals(Songs.class)) {
+                        mainTest.filteredSongs =
+                                SongHelper.filterSongs(mainTest.filteredSongs, null, null, filterValue);
+                    }
+
+                }
+            }
+            event.getChannel().sendMessage("How many songs after applying filter? "
+                    + mainTest.filteredSongs.size() + ", picking random song using filter").queue();
+        }
+        handleRandomSongCommand(mainTest, event);
+    }
+
+    static void handleResetFilter(MainTest mainTest, GuildMessageReceivedEvent event) {
+        mainTest.filteredSongs = SongHelper.filterSongs(new ArrayList<>(), null, null, null);
+        event.getChannel().sendMessage("Removed runtime filter, " +
+                "switching to filter from file and pushing random song").queue();
+        handleClearCommand(mainTest, event);
+        handleRandomSongCommand(mainTest, event);
+    }
+
     static void handleReloadProperties(MainTest mainTest, GuildMessageReceivedEvent event) {
         try {
-            MiscHelper.loadProperties();
-            mainTest.filteredSongs = SongHelper.filterSongs(mainTest.songsFromFile);
+            MiscHelper.loadResource("default.properties");
+            mainTest.filteredSongs = SongHelper.filterSongs(new ArrayList<>(), null, null, null);
             event.getChannel().sendMessage("Re-filtered songs by reloading values from default.properties").queue();
         } catch (MissingPropertyException | IOException propertyException) {
             logger.log(Level.WARNING, "Exception when reloading properties: " + propertyException.getMessage());

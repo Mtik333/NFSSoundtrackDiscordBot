@@ -29,4 +29,8 @@ public class Resources {
     public static final String QUEUE_COMMAND = "~queue";
     public static final String CLEAR_COMMAND = "~clear";
     public static final String SET_VOLUME_COMMAND = "~setVolume";
+    public static final String SET_SERIES_FILTER_COMMAND = "~setSeriesFilter";
+    public static final String SET_GAMES_FILTER_COMMAND = "~setGamesFilter";
+    public static final String SET_SONGS_FILTER_COMMAND = "~setSongsFilter";
+    public static final String RESET_FILTER_COMMAND = "~resetFilter";
 }

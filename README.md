@@ -1,4 +1,4 @@
-# NFSSoundtrack Radio Bot
+# NFSSoundtrack Radio Bot - THIS DOCUMENT IS TOTALLY OUT OF DATE AND I SHOULD UPDATE IT VERY VERY SOOOOOOOOOOOOOOOOOOOOON
 
 Java app that connects NFSSoundtrack Radio bot, which will play songs from the website's kind of database
 

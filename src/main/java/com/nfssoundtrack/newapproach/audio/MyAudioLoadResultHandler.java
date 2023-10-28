@@ -67,12 +67,12 @@ public class MyAudioLoadResultHandler implements AudioLoadResultHandler {
             channel.getJDA().getPresence().setActivity(Activity.listening("Dear admin, YouTube blocked me"));
             String adminId = MiscHelper.propertyValues.getProperty("pingadmin.id");
             logger.log(Level.INFO, "Admin id from properties: " + adminId);
-            if (adminId!=null && !adminId.isEmpty()){
+            if (adminId != null && !adminId.isEmpty()) {
                 User adminUser = channel.getJDA().getUserById(adminId);
                 logger.log(Level.INFO, "User is: " + adminUser);
-                if (adminUser!=null){
+                if (adminUser != null) {
                     adminUser.openPrivateChannel().queue((privateChannel
-                        -> privateChannel.sendMessage("Hi! I got error 429.\n"+exceptionMessage).queue()));
+                            -> privateChannel.sendMessage("Hi! I got error 429.\n" + exceptionMessage).queue()));
                 } else {
                     logger.log(Level.WARNING, "No admin id provided in proeprties file, cannot communicate problem with bot");
                 }

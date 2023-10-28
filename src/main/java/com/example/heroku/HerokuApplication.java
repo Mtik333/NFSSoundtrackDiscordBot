@@ -46,6 +46,7 @@ public class HerokuApplication {
         logger.log(Level.INFO, "Starting Spring application");
         try {
             MiscHelper.loadProperties();
+            MiscHelper.initializeSessionFactory();
         } catch (MissingPropertyException propertyException) {
             logger.log(Level.SEVERE, "Properties file has some errors: \n" + propertyException.getMessage());
             return;
@@ -67,7 +68,7 @@ public class HerokuApplication {
             return "error";
         } else {
             jda = JDABuilder.create(MiscHelper.propertyValues.getProperty("bot.token"),
-                    EnumSet.of(GatewayIntent.GUILD_MESSAGES, GatewayIntent.GUILD_VOICE_STATES))
+                            EnumSet.of(GatewayIntent.GUILD_MESSAGES, GatewayIntent.GUILD_VOICE_STATES))
                     .addEventListeners(new MainTest())
                     .setActivity(Activity.playing("wake up, we have soundtracks to play"))
                     .build();

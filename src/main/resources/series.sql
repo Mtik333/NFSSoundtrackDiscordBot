@@ -44,3 +44,11 @@
 (46,'SSX');
 (47,'Hot Wheels');
 (48,'Extreme G');
+(49,'Road Rash');
+(50,'Madness');
+(51,'Moto Racer');
+(52,'Jet Moto');
+(53,'Screamer');
+(54,'Vector Unit');
+(55,'Project CARS');
+(56,'Alarm fur Cobra 11');

@@ -3,6 +3,10 @@ package com.nfssoundtrack.newapproach.others;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.VoiceChannel;
+import org.hibernate.SessionFactory;
+import org.hibernate.boot.MetadataSources;
+import org.hibernate.boot.registry.StandardServiceRegistry;
+import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -22,40 +26,56 @@ public class MiscHelper {
     private static final String OS = System.getProperty("os.name").toLowerCase();
     private static final Logger logger = Logger.getLogger(MiscHelper.class.getName());
 
+    public static SessionFactory sessionFactory;
+
+    public static void initializeSessionFactory() {
+        StandardServiceRegistry registry = new StandardServiceRegistryBuilder().configure().build();
+        try {
+            sessionFactory = new MetadataSources(registry).buildMetadata().buildSessionFactory();
+        } catch (Exception e) {
+            return;
+        }
+    }
+
     public static void loadProperties() throws MissingPropertyException, IOException {
-        logger.log(Level.INFO, "Entering loadProperties");
-        String runtimePath = MiscHelper.class.getProtectionDomain().getCodeSource().getLocation().getPath();
+        File valuesFile = loadResource("default.properties");
+        String valuesPath = valuesFile.getPath();
+        InputStream in = new FileInputStream(valuesPath);
+        propertyValues = new Properties();
+        propertyValues.load(in);
+        logger.log(Level.INFO, "Properties loaded correctly (JAR-mode)");
+        validateProperties();
+    }
+
+    public static File loadResource(String resourceName) throws MissingPropertyException, IOException {
+        logger.log(Level.INFO, "Entering loadResource");
+        String runtimePath = MiscHelper.class.getProtectionDomain()
+                .getCodeSource().getLocation().getPath();
         logger.log(Level.INFO, "Path: " + runtimePath);
-        String valuesPath;
         if (runtimePath.toLowerCase().contains(".jar")) {
             String testPath = "";
             if (isWindows()) {
                 logger.log(Level.INFO, "Running on Windows system");
                 //path always starts with file:/
-                testPath = runtimePath.substring(6, runtimePath.indexOf(".jar")) + "default.properties";
-                testPath = testPath.replace("NFSSoundtrack-Radio-0.7.1", "");
+                testPath = runtimePath.substring(6, runtimePath.indexOf(".jar")) + resourceName;
+                testPath = testPath.replace("NFSSoundtrack-Radio-0.9", "");
             } else if (isUnix()) {
                 logger.log(Level.INFO, "Running on Unix system");
-                testPath = runtimePath.substring(5, runtimePath.indexOf(".jar")) + "default.properties";
-                testPath = testPath.replace("NFSSoundtrack-Radio-0.7.1", "");
-            } else if (isMac()){
+                testPath = runtimePath.substring(5, runtimePath.indexOf(".jar")) + resourceName;
+                testPath = testPath.replace("NFSSoundtrack-Radio-0.9", "");
+            } else if (isMac()) {
                 logger.log(Level.INFO, "I don't know");
             }
             logger.log(Level.INFO, "Path to properties file: " + testPath);
             File valuesFile = new File(testPath);
-            valuesPath = valuesFile.getPath();
-            InputStream in = new FileInputStream(valuesPath);
-            propertyValues = new Properties();
-            propertyValues.load(in);
-            logger.log(Level.INFO, "Properties loaded correctly (JAR-mode)");
+            return valuesFile;
         } else {
-            valuesPath = MiscHelper.class.getResource("/bot/default.properties").getPath();
-            InputStream in = new FileInputStream(valuesPath);
-            propertyValues = new Properties();
-            propertyValues.load(in);
-            logger.log(Level.INFO, "Properties loaded correctly (non-JAR-mode)");
+            if (isWindows()) {
+                File valuesFile = new File("D:\\JetBrains\\IdeaProjects\\NFSSoundtrackRadio\\src" +
+                        "\\main\\resources\\bot\\default.properties");
+                return valuesFile;
+            } else return null;
         }
-        validateProperties();
     }
 
     private static void validateProperties() throws MissingPropertyException {
@@ -99,10 +119,10 @@ public class MiscHelper {
 
     public static boolean isBotStarted(JDA jda) {
         logger.log(Level.INFO, "Entering isBotStarted: parameters: jda: " + jda);
-        if (jda!=null){
+        if (jda != null) {
             VoiceChannel voiceChannelFromProperties = jda
                     .getVoiceChannelById(propertyValues.getProperty("voicechannel.id"));
-            if (voiceChannelFromProperties!=null){
+            if (voiceChannelFromProperties != null) {
                 List<Member> voiceChannelMembers = voiceChannelFromProperties.getMembers();
                 Optional<Member> botConnected = voiceChannelMembers.stream().filter(member ->
                         member.getId().contentEquals(propertyValues.getProperty("bot.id"))).findAny();
@@ -112,18 +132,19 @@ public class MiscHelper {
                 logger.log(Level.INFO, "Voice channel not found");
                 return false;
             }
-        }
-        else return false;
+        } else return false;
     }
 
     public static int getVersion() {
         String version = System.getProperty("java.version");
         logger.log(Level.INFO, "Entering getVersion, version from system property: " + version);
-        if(version.startsWith("1.")) {
+        if (version.startsWith("1.")) {
             version = version.substring(2, 3);
         } else {
             int dot = version.indexOf(".");
-            if(dot != -1) { version = version.substring(0, dot); }
+            if (dot != -1) {
+                version = version.substring(0, dot);
+            }
         }
         int digitVersion = Integer.parseInt(version);
         logger.log(Level.INFO, "Normalized version of Java: " + digitVersion);
