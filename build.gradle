@@ -42,7 +42,7 @@ dependencies {
 
 	implementation "net.dv8tion:JDA:$jdaVersion"
 	//implementation 'com.sedmelluq:lavaplayer:1.3.78'
-	implementation 'com.github.walkyst:lavaplayer-fork:1.4.3'
+	implementation 'com.github.devoxin:lavaplayer:1.8.0'
 	implementation 'ch.qos.logback:logback-classic:1.4.11'
 	implementation group: 'com.mysql', name: 'mysql-connector-j', version: '8.1.0'
 	implementation group: 'org.hibernate.orm', name: 'hibernate-core', version: '6.3.1.Final'
@@ -57,6 +57,16 @@ dependencies {
 compileJava.options.encoding = 'UTF-8'
 
 mainClassName = 'com.example.heroku.HerokuApplication'
+
+bootJar {
+	duplicatesStrategy(DuplicatesStrategy.EXCLUDE)
+}
+distTar {
+	duplicatesStrategy(DuplicatesStrategy.EXCLUDE)
+}
+distZip {
+	duplicatesStrategy(DuplicatesStrategy.EXCLUDE)
+}
 
 task copyProperties (type: Copy){
 	dependsOn shadowJar
