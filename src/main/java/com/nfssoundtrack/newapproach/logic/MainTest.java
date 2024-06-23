@@ -40,12 +40,13 @@ public class MainTest extends ListenerAdapter {
     public MainTest() {
         this.musicManagers = new HashMap<>();
         this.playerManager = new DefaultAudioPlayerManager();
+        dev.lavalink.youtube.YoutubeAudioSourceManager youtubeAudioSourceManager = new dev.lavalink.youtube.YoutubeAudioSourceManager(true);
         this.playerManager.setFrameBufferDuration(2000);
         this.playerManager.getConfiguration().setResamplingQuality
                 (AudioConfiguration.ResamplingQuality.valueOf(MiscHelper.propertyValues.getProperty("quality.level", "HIGH")));
+        playerManager.registerSourceManager(youtubeAudioSourceManager);
         AudioSourceManagers.registerRemoteSources(playerManager);
-        AudioSourceManagers.registerLocalSource(playerManager);
-
+//        AudioSourceManagers.registerLocalSource(playerManager);
         this.filteredSongs = SongHelper.filterSongs(new ArrayList<>(), null, null, null);
     }
 
@@ -84,7 +85,7 @@ public class MainTest extends ListenerAdapter {
         logger.log(Level.INFO, "onGuildMessageReceived: event: " + event);
         String textChannelId = MiscHelper.propertyValues.getProperty("textchannel.id");
         String[] command = event.getMessage().getContentRaw().split(" ", 2);
-        boolean userAllowed=true;
+        boolean userAllowed = true;
         if (event.getAuthor().getId().equals(MiscHelper.propertyValues.getProperty("pingadmin.id"))
                 || event.getAuthor().getId().equals(MiscHelper.propertyValues.getProperty("bot.id"))) {
             logger.log(Level.INFO, "allgood");
@@ -101,7 +102,7 @@ public class MainTest extends ListenerAdapter {
                         event.getAuthor().openPrivateChannel().queue((privateChannel ->
                                 privateChannel.sendMessage("You're not allowed to change the radio, " +
                                         "ask admin to get such permissions").queue()));
-                        userAllowed=false;
+                        userAllowed = false;
                     }
                 }
             } else {
@@ -111,7 +112,7 @@ public class MainTest extends ListenerAdapter {
                     event.getAuthor().openPrivateChannel().queue((privateChannel ->
                             privateChannel.sendMessage("You're not allowed to change the radio, " +
                                     "ask admin to get such permissions").queue()));
-                    userAllowed=false;
+                    userAllowed = false;
                 }
             }
         }

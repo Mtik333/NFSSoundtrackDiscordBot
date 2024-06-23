@@ -71,7 +71,7 @@ public class MiscHelper {
             return valuesFile;
         } else {
             if (isWindows()) {
-                File valuesFile = new File("D:\\JetBrains\\IdeaProjects\\NFSSoundtrackRadio\\src" +
+                File valuesFile = new File("D:\\JetBrains\\IdeaProjects\\NFSSoundtrackDiscordBot\\src" +
                         "\\main\\resources\\bot\\default.properties");
                 return valuesFile;
             } else return null;
